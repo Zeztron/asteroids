@@ -1,5 +1,7 @@
 const FPS = 30; // 30 frames per second
+const friction = 0.7; // friction coefficient of space (0 = no friction, 1 = lots of friction)
 const shipSize = 30; // ship height in pixels
+const shipThrust = 5; // acceleration of the ship in px/sec
 const turnSpeed = 360; // 360 degrees per second
 var canvas = document.getElementById("gameCanvas");
 var context = canvas.getContext("2d");
@@ -8,7 +10,12 @@ var ship = {
     y: canvas.height / 2,
     r: shipSize / 2,
     a: 90 / 180 * Math.PI, // convert to radians
-    rot: 0
+    rot: 0,
+    thrusting: false,
+    thrust: {
+        x: 0,
+        y: 0
+    }
 }
 
 // set up event handlers
@@ -26,6 +33,7 @@ function keyDown(/** @type { KeyboardEvent } */ ev) {
 
 
         case 38: // up arrow (throttle forward)
+            ship.thrusting = true;
             break;
 
 
@@ -43,6 +51,7 @@ function keyUp(/** @type { KeyboardEvent } */ ev) {
 
 
         case 38: // up arrow (stop thrusting)
+            ship.thrusting = false;
             break;
 
 
@@ -56,6 +65,15 @@ function update() {
     // draw space
     context.fillStyle = "black";
     context.fillRect(0, 0, canvas.width, canvas.height);
+
+    // thrust the ship
+    if (ship.thrusting) {
+        ship.thrust.x += shipThrust * Math.cos(ship.a) / FPS;
+        ship.thrust.y -= shipThrust * Math.sin(ship.a) / FPS;
+    } else {
+        ship.thrust.x -= friction * ship.thrust.x / FPS;
+        ship.thrust.y -= friction * ship.thrust.y / FPS;
+    }
 
     // draw triangular ship
     context.strokeStyle = "white";
@@ -75,10 +93,25 @@ function update() {
     );
     context.closePath();
     context.stroke();
+
     // rotate the ship
     ship.a += ship.rot;
 
     // move the ship
+    ship.x += ship.thrust.x;
+    ship.y += ship.thrust.y;
+
+    // handle the edge of the screen
+    if(ship.x < 0 - ship.r) {
+        ship.x = canvas.width + ship.r;
+    } else if (ship.x > canvas.width + ship.r) {
+        ship.x = 0 - ship.r;
+    }
+    if(ship.y < 0 - ship.r) {
+        ship.y = canvas.height + ship.r;
+    } else if (ship.y > canvas.height + ship.r) {
+        ship.y = 0 - ship.r;
+    }
 
     // Draw the center dot
     context.fillStyle = "red";
