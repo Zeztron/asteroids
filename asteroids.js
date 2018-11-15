@@ -70,6 +70,27 @@ function update() {
     if (ship.thrusting) {
         ship.thrust.x += shipThrust * Math.cos(ship.a) / FPS;
         ship.thrust.y -= shipThrust * Math.sin(ship.a) / FPS;
+        // draw the thruster
+        context.fillStyle = "red";
+        context.strokeStyle = "yellow";
+        context.lineWidth = shipSize / 10;
+        context.beginPath();
+        context.moveTo( // rear left
+            ship.x - ship.r * (2 / 3 * Math.cos(ship.a) + 0.5 * Math.sin(ship.a)),
+            ship.y + ship.r * (2 / 3 * Math.sin(ship.a) - 0.5 * Math.cos(ship.a))
+        );
+        context.lineTo( // rear center behind the ship
+            ship.x - ship.r * 6 / 3 * Math.cos(ship.a),
+            ship.y + ship.r * 6 / 3 * Math.sin(ship.a)
+        );
+        context.lineTo( // rear right of the ship
+            ship.x - ship.r * (2 / 3 * Math.cos(ship.a) - 0.5 * Math.sin(ship.a)),
+            ship.y + ship.r * (2 / 3 * Math.sin(ship.a) + 0.5 * Math.cos(ship.a))
+        );
+        context.closePath();
+        context.fill();
+        context.stroke();
+
     } else {
         ship.thrust.x -= friction * ship.thrust.x / FPS;
         ship.thrust.y -= friction * ship.thrust.y / FPS;
