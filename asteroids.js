@@ -1,5 +1,8 @@
 const FPS = 30; // 30 frames per second
 const friction = 0.7; // friction coefficient of space (0 = no friction, 1 = lots of friction)
+const laserMax = 10; // max number of lazers on screen at once
+const laserSpeed = 500; // 500 pixels per second
+const laserDistance = 0.6; // max distance laser can travel as fraction of screen width
 const roidsNum = 3; // Starting number of asteroids
 const roidsSize = 100; // starting size of asteriods in pixel
 const roidsSpeed = 50; // max starting speed in px/sec
@@ -54,6 +57,10 @@ function explodeShip() {
 
 function keyDown(/** @type { KeyboardEvent } */ ev) {
     switch(ev.keyCode) {
+        case 32: // space bar (shoot the lazer)
+            shootLaser();
+            break;
+
         case 37: // left arrow (rotate ship left)
             ship.rot = turnSpeed / 180 * Math.PI / FPS;
             break;
@@ -72,6 +79,10 @@ function keyDown(/** @type { KeyboardEvent } */ ev) {
 
 function keyUp(/** @type { KeyboardEvent } */ ev) {
     switch(ev.keyCode) {
+        case 32: // space bad (allow shooting again)
+            ship.canShoot = true;
+            break;
+
         case 37: // left arrow (stop rotating left)
             ship.rot = 0;
             break;
@@ -116,7 +127,9 @@ function newShip() {
         a: 90 / 180 * Math.PI, // convert to radians
         blinkTime: Math.ceil(shipBlinkDuration * FPS),
         blinkNumber: Math.ceil(shipInvulnerabilityDuration / shipBlinkDuration),
+        canShoot: true,
         explodeTime: 0,
+        lasers: [],
         rot: 0,
         thrusting: false,
         thrust: {
@@ -124,6 +137,21 @@ function newShip() {
             y: 0
         }
     }
+}
+
+function shootLaser() {
+    // create the laser object
+    if(ship.canShoot && ship.lasers.length < laserMax) {
+        ship.lasers.push({ // from the nose of the ship
+            x: ship.x + 4 / 3 * ship.r * Math.cos(ship.a),
+            y: ship.y - 4 / 3 * ship.r * Math.sin(ship.a),
+            xv: laserSpeed * Math.cos(ship.a) / FPS,
+            yv: -laserSpeed * Math.sin(ship.a) / FPS,
+            dist: 0
+        })
+    }
+    // prevent further shooting
+    ship.canShoot = false;
 }
 
 function update() {
@@ -270,6 +298,14 @@ function update() {
         context.fillRect(ship.x - 1, ship.y - 1, 2, 2);
     }
 
+    // draw the lasers
+    for(var i = 0; i < ship.lasers.length; i++) {
+        context.fillStyle = "salmon";
+        context.beginPath();
+        context.arc(ship.lasers[i].x, ship.lasers[i].y, shipSize / 15, 0, Math.PI * 2, false);
+        context.fill();
+    }
+    // check for asteroid collision (when not exploding)
     if(!exploding) {
         if(ship.blinkNumber == 0) {
             // check for asteroid collisions
@@ -290,6 +326,33 @@ function update() {
         ship.explodeTime--;
         if(ship.explodeTime == 0) {
             ship = newShip();
+        }
+    }
+
+    // move the lasers
+    for(var i = ship.lasers.length - 1; i >= 0; i--) {
+        // check distance travelled
+        if(ship.lasers[i].dist > laserDistance * canvas.width) {
+            ship.lasers.splice(i, 1);
+            continue;
+        }
+        // move the laser
+        ship.lasers[i].x += ship.lasers[i].xv;
+        ship.lasers[i].y += ship.lasers[i].yv;
+
+        // calculate the distance travelled
+        ship.lasers[i].dist += Math.sqrt(Math.pow(ship.lasers[i].xv, 2) + Math.pow(ship.lasers[i].yv, 2));
+
+        // hendle edge of screen
+        if(ship.lasers[i].x < 0) {
+            ship.lasers[i].x = canvas.width;
+        } else if (ship.lasers[i].x > canvas.width) {
+            ship.lasers[i].x = 0;
+        }
+        if(ship.lasers[i].y < 0) {
+            ship.lasers[i].y = canvas.height;
+        } else if (ship.lasers[i].y > canvas.height) {
+            ship.lasers[i].y = 0;
         }
     }
 
